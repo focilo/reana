@@ -330,8 +330,9 @@ def git_fork(component, exclude_components, browser):  # noqa: D301
 @click.option(
     "--exclude-components", default="", help="Which components to exclude? [c1,c2,c3]",
 )
+@click.option("--target-directory", default=".", help="In which directory install? [.]")
 @git_commands.command(name="git-clone")
-def git_clone(user, component, exclude_components):  # noqa: D301
+def git_clone(user, component, exclude_components, target_directory):  # noqa: D301
     """Clone REANA source repositories from GitHub.
 
     If the ``user`` argument is provided, the ``origin`` will be cloned from
@@ -371,8 +372,30 @@ def git_clone(user, component, exclude_components):  # noqa: D301
     if exclude_components:
         exclude_components = exclude_components.split(",")
     components = select_components(component, exclude_components)
+
+    if "--target-directory" in sys.argv:
+        instalation_directory = os.path.realpath(target_directory + "/")
+
+        if not os.path.isdir(instalation_directory):
+            message = "[ERROR] Directory {0} does not exist. Exiting.".format(
+                instalation_directory
+            )
+            display_message(message)
+            sys.exit(1)
+
+        if len(os.listdir(instalation_directory)) != 0:
+            message = "Directory {0} not empty. Cloning aborted".format(
+                instalation_directory
+            )
+            display_message(message)
+            sys.exit(0)
+
     for component in components:
-        os.chdir(get_srcdir())
+        if "--target-directory" in sys.argv:
+            os.chdir(instalation_directory)
+        else:
+            os.chdir(get_srcdir())
+
         if os.path.exists("{0}/.git/config".format(component)):
             msg = "Component seems already cloned. Skipping."
             display_message(msg, component)
